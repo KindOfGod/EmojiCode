@@ -36,34 +36,37 @@ public class Parser
 
     private BranchNode ParseStatement()
     {
-        switch (_currentToken.Type)
+        return _currentToken.Type switch
         {
-            case TokenType.Print:
-                return ParsePrintStatement();
-            case TokenType.Read:
-                return ParseReadStatement();
-            case TokenType.If:
-                return ParseIfStatement();
-            case TokenType.While:
-                return ParseWhileLoop();
-            default:
-                return ParseExpression();
-        }
+            TokenType.Print => ParsePrintStatement(),
+            TokenType.Read => ParseReadStatement(),
+            TokenType.If => ParseIfStatement(),
+            TokenType.While => ParseWhileLoop(),
+            _ => ParseExpression()
+        };
     }
 
     private BranchNode ParsePrintStatement()
     {
         Eat(TokenType.Print);
         var expression = ParseExpression();
+        
         return new PrintNode(expression);
     }
 
     private BranchNode ParseReadStatement()
     {
         Eat(TokenType.Read);
-        // Assuming that Read just involves a variable name in this simplified version
-        // You might need to handle variables separately
-        return new ReadNode(new NumberNode("Variable")); // Placeholder for actual variable handling
+        // Assuming that the next token is a variable
+        if (_currentToken.Type != TokenType.Variable)
+        {
+            throw new Exception("Expected a variable name after the Read statement");
+        }
+        
+        var variableName = _currentToken.Value;
+        Eat(TokenType.Variable);
+        
+        return new ReadNode(new VariableNode(variableName));
     }
 
     private BranchNode ParseIfStatement()
@@ -71,9 +74,12 @@ public class Parser
         Eat(TokenType.If);
         var condition = ParseExpression();
         var trueBranch = ParseStatement();
+        
         Eat(TokenType.Else);
         var falseBranch = ParseStatement();
+        
         Eat(TokenType.EndIf);
+        
         return new IfStatementNode(condition, trueBranch, falseBranch);
     }
 
@@ -82,7 +88,9 @@ public class Parser
         Eat(TokenType.While);
         var condition = ParseExpression();
         var body = ParseStatement();
+        
         Eat(TokenType.EndWhile);
+        
         return new WhileLoopNode(condition, body);
     }
 
@@ -94,6 +102,7 @@ public class Parser
         {
             var op = _currentToken.Type;
             Eat(op);
+            
             var right = ParseTerm();
             left = new BinaryOperationNode(left, op, right);
         }
@@ -109,6 +118,7 @@ public class Parser
         {
             var op = _currentToken.Type;
             Eat(op);
+            
             var right = ParseFactor();
             left = new BinaryOperationNode(left, op, right);
         }
@@ -123,6 +133,7 @@ public class Parser
         
         var value = _currentToken.Value;
         Eat(TokenType.Number);
+        
         return new NumberNode(value);
 
     }
